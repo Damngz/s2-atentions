@@ -2,10 +2,15 @@ package com.s2.atentions.controller;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,7 +21,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.s2.atentions.model.Atention;
-import com.s2.atentions.model.Response;
 import com.s2.atentions.service.AtentionService;
 
 @RestController
@@ -28,47 +32,56 @@ public class AtentionController {
   private AtentionService atentionService;
 
   @GetMapping
-  public List<Atention> getAllAtentions() {
-    return atentionService.getAllAtentions();
+  public CollectionModel<EntityModel<Atention>> getAllAtentions() {
+    List<Atention> atentions = atentionService.getAllAtentions();
+
+    List<EntityModel<Atention>> atentionResources = atentions.stream()
+      .map(atention -> EntityModel.of(
+        atention,
+        WebMvcLinkBuilder.linkTo(
+          WebMvcLinkBuilder.methodOn(this.getClass()).getAtentionById(atention.getId())
+        ).withSelfRel())).collect(Collectors.toList());
+
+    WebMvcLinkBuilder linkTo = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).getAllAtentions());
+    CollectionModel<EntityModel<Atention>> resources = CollectionModel.of(atentionResources, linkTo.withRel("atentions"));
+
+    return resources;
   }
 
   @GetMapping("/{id}")
-  public Optional<Atention> getAtentionById(@PathVariable Long id) {
-    return atentionService.getAtentionById(id);
+  public EntityModel<Atention> getAtentionById(@PathVariable Long id) {
+    Optional<Atention> atention = atentionService.getAtentionById(id);
+
+    if (atention.isPresent()) {
+      return EntityModel.of(atention.get(),
+        WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).getAtentionById(id)).withSelfRel(),
+        WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).getAllAtentions()).withRel("all-atentions"));
+    } else {
+      throw new AtentionNotFoundException("Atention not found with id: " + id);
+    }
   }
 
   @PostMapping
-  public Response createAtention(@RequestBody Atention atention) {
+  public EntityModel<Atention> createAtention(@Validated @RequestBody Atention atention) {
     Atention createdAtention = atentionService.createAtention(atention);
 
-    if (createdAtention == null) {
-      log.error("No se pudo crear la atención", atention);
-      return new Response(500, "No se pudo crear la atención");
-    }
-
-    return new Response(200, "Atención creada con éxito");
+    return EntityModel.of(createdAtention,
+      WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).getAtentionById(createdAtention.getId())).withSelfRel(),
+      WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).getAllAtentions()).withRel("all-atentions"));
   }
 
   @PutMapping("/{id}")
-  public Response updateAtention(@PathVariable Long id, @RequestBody Atention atention) {
-    try {
-      atentionService.updateAtention(id, atention);
-      return new Response(200, "Atención actualizada con éxito");
-    } catch (Exception e) {
-      log.error("No se pudo actualizar la atención", e);
-      return new Response(500, "No se pudo actualizar la atención.");
-    }
+  public EntityModel<Atention> updateAtention(@PathVariable Long id, @RequestBody Atention atention) {
+    Atention updatedAtention = atentionService.updateAtention(id, atention);
+
+    return EntityModel.of(updatedAtention,
+      WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).getAtentionById(id)).withSelfRel(),
+      WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).getAllAtentions()).withRel("all-atentions"));
   }
 
   @DeleteMapping("/{id}")
-  public Response deleteAtention(@PathVariable Long id) {
-    try {
-      atentionService.deleteAtention(id);
-      return new Response(200, "Atención eliminada con éxito");
-    } catch (Exception e) {
-      log.error("No se pudo eliminar la atención", e);
-      return new Response(500, "No se pudo eliminar la atención.");
-    }
+  public void deleteAtention(@PathVariable Long id) {
+    atentionService.deleteAtention(id);
   }
 
   @GetMapping("/patient/{patientId}")
