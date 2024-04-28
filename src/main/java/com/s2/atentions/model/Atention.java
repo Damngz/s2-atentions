@@ -1,5 +1,7 @@
 package com.s2.atentions.model;
 
+import org.springframework.hateoas.RepresentationModel;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -10,7 +12,7 @@ import jakarta.validation.constraints.NotBlank;
 
 @Entity
 @Table(name="atention")
-public class Atention {
+public class Atention extends RepresentationModel<Atention> {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(name = "id")
