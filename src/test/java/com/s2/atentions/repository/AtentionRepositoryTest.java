@@ -17,7 +17,7 @@ public class AtentionRepositoryTest {
   private AtentionRepository atentionRepository;
 
   @Test
-  public void saveAtentionTest() {
+  public void saveAtentionRepositoryTest() {
     Atention atention = new Atention();
     atention.setDate("11-04-2024");
     atention.setPatient("Gabriel");
@@ -31,5 +31,30 @@ public class AtentionRepositoryTest {
   
     assertNotNull(result.getId());
     assertEquals("11-04-2024", result.getDate());
+  }
+
+  @Test
+  public void updateAtentionRepositoryTest() {
+    Atention atention = new Atention();
+    atention.setDate("11-04-2024");
+    atention.setPatient("Gabriel");
+    atention.setPatientId("123");
+    atention.setDoctor("Doctor 1");
+    atention.setDiagnosis("Diagnosis test");
+    atention.setTreatment("No treatment");
+    atention.setObservations("No observations");
+  
+    atentionRepository.save(atention);
+
+    atention.setDoctor("Doctor 2");
+    atention.setDate("10-04-2024");
+
+    atentionRepository.save(atention);
+
+    Atention updatedAtention = atentionRepository.findById(atention.getId()).orElse(null);
+
+    assertNotNull(updatedAtention);
+    assertEquals("Doctor 2", updatedAtention.getDoctor());
+    assertEquals("10-04-2024", updatedAtention.getDate());
   }
 }
